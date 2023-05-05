@@ -37,10 +37,25 @@ def font2img(src_font,dst_img_dir):
     img_font=ImageFont.truetype(src_font,64)
     for ch in charset:
         
-        img = Image.new("L", (canvas_size * 2, canvas_size * 2), 0)
+        img = Image.new("L", (canvas_size , canvas_size ), 0)
         draw = ImageDraw.Draw(img)
-        draw.text((10, 10), ch, 255, font=img_font)
-        img.save(f"{dst_img_dir}/{ch}.png")
+        draw.text((0, 0), ch, 255, font=img_font)
+        
+        print("hehe",ch)
+        bbox = img.getbbox()
+        print(bbox)
+        # l, u, r, d = bbox
+        # l = max(0, l - 5)
+        # u = max(0, u - 5)
+        # r = min(canvas_size  - 1, r + 5)
+        # d = min(canvas_size  - 1, d + 5)
+        # print(l, u, r, d)
+        # text_region_img=img.crop((l,u,r,d))
+        # text_high, text_wide = text_region_img.size
+        # new_len_side=max(text_high,text_wide)
+        np_square_img=255-np.array(img)
+        square_img=Image.fromarray(np_square_img)
+        square_img.save(f"{dst_img_dir}/{ch}.png")
         break
     
 
