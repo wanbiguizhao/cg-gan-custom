@@ -1,6 +1,6 @@
 set -ex
 CUDA_VISIBLE_DEVICES=0 python train.py \
---dataroot data/ \
+--dataroot data/train_set \
 --ttfRoot data/font \
 --corpusRoot data/char_set.txt \
 --alphabet data/char_set.txt \

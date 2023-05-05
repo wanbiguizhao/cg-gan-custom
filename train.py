@@ -15,7 +15,7 @@ if __name__ == '__main__':
     #允许debug sh启动的程序了。
 
     print("Enabling attach starts.")
-    debugpy.listen(address=('0.0.0.0', 9310))
+    debugpy.listen(address=('localhost', 9310))
     debugpy.wait_for_client()
     print("Enabling attach ends.")
     dataset = lmdb_dataset.ConcatLmdbDataset(
@@ -32,8 +32,8 @@ if __name__ == '__main__':
     dataset_size = len(dataset)    # get the number of images in the dataset.
     print('The number of training images = %d' % dataset_size)
     
-    valdataset = val_dataset.ValDataset(root = opt.val_seenstyleRoot, ttfRoot = opt.ttfRoot)
-    valdataset_unseen = val_dataset.ValDataset(root = opt.val_unseenstyleRoot, ttfRoot = opt.ttfRoot)
+    #valdataset = val_dataset.ValDataset(root = opt.val_seenstyleRoot, ttfRoot = opt.ttfRoot)
+    #valdataset_unseen = val_dataset.ValDataset(root = opt.val_unseenstyleRoot, ttfRoot = opt.ttfRoot)
     #import pdb;pdb.set_trace()
     validationFunc = validateUN
     val_dir = os.path.join(opt.checkpoints_dir, opt.name,'validation_seenstyle')
@@ -87,8 +87,8 @@ if __name__ == '__main__':
             model.save_networks('latest')
             model.save_networks(epoch)
         
-        validationFunc(dataset=valdataset, model=model, epoch=epoch, val_dir=val_dir, val_num=2)
-        validationFunc(dataset=valdataset_unseen, model=model, epoch=epoch, val_dir=val_dir_unseen, val_num=5)
+        #validationFunc(dataset=valdataset, model=model, epoch=epoch, val_dir=val_dir, val_num=2)
+        #validationFunc(dataset=valdataset_unseen, model=model, epoch=epoch, val_dir=val_dir_unseen, val_num=5)
        
         print('End of epoch %d / %d \t Time Taken: %d sec' % (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
         model.update_learning_rate()                    # update learning rates at the end of every epoch.

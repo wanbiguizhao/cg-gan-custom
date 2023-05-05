@@ -4,6 +4,16 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+            {
+                "name": "Attach",
+                "type": "python",
+                "request": "attach",
+                "connect": {
+                "host": "0.0.0.0", // replace this with remote machine name
+                "port": 9310
+            }
+        },
         {
             "name": "Python: Current File",
             "type": "python",
@@ -12,7 +22,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "env": { 
-                "zPYTHONPATH": "${workspaceFolder}"},
+                "PYTHONPATH": "${workspaceFolder}"},
         }
      
     ]

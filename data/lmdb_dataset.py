@@ -134,7 +134,8 @@ class lmdbDataset(Dataset):
             writerID = int(txn.get(writerID_key.encode()))
 
             font = ImageFont.truetype(self.font_path[random.randint(0,len(self.font_path)-1)], 80)
-            label_target = self.corpus[random.randint(0, len(self.corpus)-1)]                        
+            label_target = self.corpus[random.randint(0, len(self.corpus)-1)]
+            print(label_target)                        
             lexicon_target = self.radical_dict[label_target]
             lexicon_target_list_old = lexicon_target.split()
             lexicon_target_list = []
