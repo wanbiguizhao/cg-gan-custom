@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "/home/liukun/gan/cg-gan-custom/"
+    ]
+}

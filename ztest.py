@@ -1,6 +1,11 @@
 import lmdb
 from PIL import Image, ImageDraw, ImageFont
 import six
+
+
+from  util import font2img
+font2img.src_char_set
+
 db=lmdb.open(
             "/home/liukun/Downloads/IAM/train/train_IAM/",
             max_readers=1,
