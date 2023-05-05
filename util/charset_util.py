@@ -18,16 +18,18 @@ def load_charset(ch_size):
 
 def processGlyphNames(GlyphNames):
     res = set()
+    base=16
     for char in GlyphNames:
         if char.startswith('uni'):
             char = char[3:]
         elif char.startswith('u'):
             char = char[1:]
-        else:
-            continue
+        elif char.startswith('.notdef#'):
+            char=char[8:]
+            base=10
         if char:
             try:
-                char_int = int(char, base=16)
+                char_int = int(char, base=base)
             except ValueError:
                 continue
             try:
