@@ -30,8 +30,8 @@ def checkImageIsValid(imageBin):
 
 def writeCache(env, cache):
     with env.begin(write=True) as txn:
-        for k, v in cache.iteritems():
-            txn.put(k, v)
+        for k, v in cache.items():
+            txn.put(str(k).encode(), str(v).encode())
 
 def createDataset(outputPath, imagePathList, labelList, writerIDList, lexiconList=None, checkValid=True):
     """
@@ -50,7 +50,7 @@ def createDataset(outputPath, imagePathList, labelList, writerIDList, lexiconLis
     env = lmdb.open(outputPath, map_size=1099511627776)
     cache = {}
     cnt = 1
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     for i in range(nSamples):
         imagePath = imagePathList[i]
         label = labelList[i]
@@ -59,7 +59,7 @@ def createDataset(outputPath, imagePathList, labelList, writerIDList, lexiconLis
         if not os.path.exists(imagePath):
             print('%s does not exist' % imagePath)
             continue
-        with open(imagePath, 'r') as f:
+        with open(imagePath, 'rb') as f:
             imageBin = f.read()
         if checkValid:
             if not checkImageIsValid(imageBin):
@@ -104,18 +104,19 @@ if __name__ == '__main__':
     ID_list = []
     lexicon_list = []
     
-    img_file_list = open('data/char_set.txt','r').read().splitlines()
+    img_file_list = open('tmp/images/images_info_list','r').read().splitlines()
 
-    for img_path in img_file_list:        
-        img_path_list.append(img_path)
+    for img_path in img_file_list:
+
+        img_path_list.append(os.path.join("tmp/images",img_path))# hard code
         label = img_path.split('/')[-1].split('_')[-1].split('.')[0]
         label_list.append(label)
         lexicon = cache[label]
         lexicon_list.append(lexicon)
         writerID_str = img_path.split('/')[-2]
         if len(writerID_str) > 4:
-            import pdb; pdb.set_trace()
-
+            #import pdb; pdb.set_trace()
+            pass
         if writerID_str[0] == 'C':
             writerID_str = writerID_str[1:]
 
@@ -128,7 +129,7 @@ if __name__ == '__main__':
         
 
         # import pdb; pdb.set_trace()
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     assert(len(img_path_list) == len(label_list))
     assert(len(img_path_list) == len(ID_list))
     assert(len(img_path_list) == len(lexicon_list))
