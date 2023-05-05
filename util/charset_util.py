@@ -27,6 +27,16 @@ def processGlyphNames(GlyphNames):
         elif char.startswith('.notdef#'):
             char=char[8:]
             base=10
+        elif char.startswith('Identity.'):
+            char=char[9:]
+            base=10
+            
+        elif char.startswith('glyph'):
+            char=char[5:]
+            base=10
+        else:
+            #print(char)
+            continue
         if char:
             try:
                 char_int = int(char, base=base)

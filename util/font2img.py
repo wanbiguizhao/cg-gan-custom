@@ -15,6 +15,7 @@ from fontTools.ttLib import TTFont
 #from fontTools.ttx import TTFont
 from tqdm import tqdm
 import random
+from glob import glob
 
 #from torch import nn
 #from torchvision import transforms
@@ -31,13 +32,15 @@ def is_contains_chinese(strs):
     return False
 def font2img(base_src_font_dir,base_dst_img_dir):
     def _font2img(src_font_dir,dst_img_dir):
-        font=TTFont(src_font_dir)
+        font=TTFont(src_font_dir,fontNumber=0)
         charset = processGlyphNames(font.getGlyphNames())
         print(src_font_dir,len(charset))
         img_font=ImageFont.truetype(src_font_dir,64)
+        cnt=0
         for index, ch in enumerate(charset):
             if not is_contains_chinese(ch):
                 continue
+            cnt+=1
             img = Image.new("L", (canvas_size*2 , canvas_size*2 ), 0)
             draw = ImageDraw.Draw(img)
             draw.text((0, 0), ch, 255, font=img_font)
@@ -56,8 +59,8 @@ def font2img(base_src_font_dir,base_dst_img_dir):
 
             np_square_img=255-np.array(square_img)
             square_img=Image.fromarray(np_square_img)
-            square_img.save(f"{dst_img_dir}/_{ch}.png")
-            if index>200:
+            square_img.save(f"{dst_img_dir}/{str(cnt).rjust(3,'0')}_{ch}.png")
+            if cnt>200:
                 break
     
     canvas_size=64
@@ -70,7 +73,10 @@ def font2img(base_src_font_dir,base_dst_img_dir):
             os.makedirs(f"{base_dst_img_dir}/{index}")
         print(index,font_file)
         _font2img(f"{base_src_font_dir}/{font_file}",f"{base_dst_img_dir}/{index}")
-        
+    png_path_list=[]
+    for png_path in glob(f"{base_dst_img_dir}/*/*.png"):
+        png_path_list.append(png_path[len(base_dst_img_dir)+1:])
+    open("images_info_list","w").write("\n".join(png_path_list))
     # 生成所有字体文件图片信息
 
 
