@@ -62,9 +62,11 @@ class CHARACTERModel(BaseModel):
             if opt.alphabet[-4:] == '.txt':
                 alphabet_char = open(opt.alphabet, 'r').read().splitlines()
             alphabet_char = ''.join(alphabet_char)
-            
+            # 
             self.netD = networks.define_D(len(alphabet_char)+1, opt.input_nc,opt.hidden_size,len(alphabet_char)+2,opt.dropout_p,opt.max_length,opt.D_ch,
-                                            opt.num_writer,opt.norm, opt.init_type, opt.init_gain, self.gpu_ids,iam = False)# 这块生成的是判别器。
+                                            opt.num_writer,opt.norm, opt.init_type, opt.init_gain, self.gpu_ids,iam = False)# 这块生成的是判别器，主要是评分使用的。
+            # len(alphabet_char)+1 这个参数没有使用。
+            # len(alphabet_char)+2 这个属于输出使用。
             self.converterATT = strLabelConverterForAttention(alphabet_char)
             self.converter = AttnLabelConverter(alphabet_radical)
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)  # define GAN loss.
@@ -113,14 +115,16 @@ class CHARACTERModel(BaseModel):
     
     def set_single_input(self,input):
 
-        self.img_write = input['A'].to(self.device)
-        self.img_print = input['B'].to(self.device)
+        self.img_write = input['A'].to(self.device)# style image
+        self.img_print = input['B'].to(self.device)# content image
         self.visual_names = ['img_print2write']
 
     def forward(self):
 
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         #import pdb;pdb.set_trace()
+        # img_write 是style  A
+        # img_print 是 content
         self.style_emd,self.style_fc,self.residual_features_style = self.netStyleEncoder(self.img_write)
         self.cont,self.residual_features = self.netContentEncoder(self.img_print)
         self.img_print2write = self.netdecoder(self.cont,self.residual_features,self.style_emd,self.style_fc,self.residual_features_style)

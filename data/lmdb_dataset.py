@@ -91,9 +91,9 @@ class lmdbDataset(Dataset):
         self.transform_img = transform_img
         self.transform_target_img = transform_target_img
         self.font_path = font_path
-        self.corpus = corpus
-        self.alphabet = alphabet
-        self.radical_dict = radical_dict
+        self.corpus = corpus# 语料表
+        self.alphabet = alphabet#字母表
+        self.radical_dict = radical_dict# 偏旁部首字典
         
 
     def __len__(self):
@@ -109,7 +109,7 @@ class lmdbDataset(Dataset):
             if label == '##':
                 return self[index + 1]
 
-            lexicon_Key = 'lexicon-%09d' % index
+            lexicon_Key = 'lexicon-%09d' % index #词典信息
             lexicon = str(txn.get(lexicon_Key.encode()).decode('utf-8'))
             space_list = ['⿰','⿱','⿳','⿺','⿶','⿹','⿸','⿵','⿲','⿴','⿷','⿻']
             lexicon_list_old = lexicon.split()
@@ -117,7 +117,7 @@ class lmdbDataset(Dataset):
             for i in lexicon_list_old:
                 if i not in space_list:
                     lexicon_list.append(i)
-            lexicon = ' '.join(lexicon_list)
+            lexicon = ' '.join(lexicon_list)# 这块就是所有去掉特殊字符之后⿰，都是偏旁部首。
          
             img_key = 'image-%09d' % index
             imgbuf = txn.get(img_key.encode())
@@ -132,10 +132,8 @@ class lmdbDataset(Dataset):
             
             writerID_key = 'writerID-%09d' % index
             writerID = int(txn.get(writerID_key.encode()))
-
             font = ImageFont.truetype(self.font_path[random.randint(0,len(self.font_path)-1)], 80)
-            label_target = self.corpus[random.randint(0, len(self.corpus)-1)]
-            print(label_target)                        
+            label_target = self.corpus[random.randint(0, len(self.corpus)-1)]               
             lexicon_target = self.radical_dict[label_target]
             lexicon_target_list_old = lexicon_target.split()
             lexicon_target_list = []
@@ -143,13 +141,14 @@ class lmdbDataset(Dataset):
                 if i not in space_list:
                     lexicon_target_list.append(i)
             lexicon_target = ' '.join(lexicon_target_list)
-            
             try:
                 label_w, label_h = font.getsize(label_target)
                 img_target = Image.new('RGB', (label_w, label_h), (255, 255, 255))
                 drawBrush = ImageDraw.Draw(img_target)
                 drawBrush.text((0, 0), label_target, fill=(0, 0, 0), font=font)
-                
+                # label_target 是从corpus语料表获取的，font也是根据font指定的，随机生成的。
+                # label_target 是content，这个时候我就有一个疑问，如果我不知道content是什么的时候怎么办？
+                # 
             except Exception as e:
                 with open('failed_font.txt', 'a+') as f:
                     f.write(self.font_path[index % len(self.font_path)] + '\n')
