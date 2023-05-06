@@ -50,7 +50,7 @@ class CHARACTERModel(BaseModel):
             self.model_names = ['StyleEncoder', 'ContentEncoder', 'decoder']
         
         # define networks
-        self.netContentEncoder = unet.content_encoder(G_ch=opt.G_ch).cuda()
+        self.netContentEncoder = unet.content_encoder(G_ch=opt.G_ch).cuda()# 内容编码的模型，
         self.netStyleEncoder = unet.style_encoder_textedit_addskip(G_ch = opt.G_ch).cuda()
         self.netdecoder = unet.decoder_textedit_addskip(G_ch = opt.G_ch, nEmbedding=1024).cuda()
         
@@ -67,7 +67,7 @@ class CHARACTERModel(BaseModel):
                                             opt.num_writer,opt.norm, opt.init_type, opt.init_gain, self.gpu_ids,iam = False)# 这块生成的是判别器，主要是评分使用的。
             # len(alphabet_char)+1 这个参数没有使用。
             # len(alphabet_char)+2 这个属于输出使用。
-            self.converterATT = strLabelConverterForAttention(alphabet_char)
+            self.converterATT = strLabelConverterForAttention(alphabet_char)# ?似乎没有被使用过。
             self.converter = AttnLabelConverter(alphabet_radical)
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)  # define GAN loss.
             # self.criterionunetD =networks.unetDisLoss().to(self.device)
@@ -116,7 +116,7 @@ class CHARACTERModel(BaseModel):
     def set_single_input(self,input):
 
         self.img_write = input['A'].to(self.device)# style image
-        self.img_print = input['B'].to(self.device)# content image
+        self.img_print = input['B'].to(self.device)# content image 来自原语料数据txt
         self.visual_names = ['img_print2write']
 
     def forward(self):
@@ -125,9 +125,11 @@ class CHARACTERModel(BaseModel):
         #import pdb;pdb.set_trace()
         # img_write 是style  A
         # img_print 是 content
-        self.style_emd,self.style_fc,self.residual_features_style = self.netStyleEncoder(self.img_write)
-        self.cont,self.residual_features = self.netContentEncoder(self.img_print)
+        self.style_emd,self.style_fc,self.residual_features_style = self.netStyleEncoder(self.img_write)# self.style_emd,self.style_fc 的关系style_fc在style_emd的基础上做了自适应平均，变成了1，1的矩阵。
+        self.cont,self.residual_features = self.netContentEncoder(self.img_print)# self.cont [bs,ch=1024,h=4,w=4]
+        # self.residual_features [torch.Size([4, 3, 128, 128]), torch.Size([4, 64, 64, 64]), torch.Size([4, 128, 32, 32]), torch.Size([4, 256, 16, 16]), torch.Size([4, 512, 8, 8])]
         self.img_print2write = self.netdecoder(self.cont,self.residual_features,self.style_emd,self.style_fc,self.residual_features_style)
+        # 生成器基本上是和图片有关系，这点非常重要。
         
         
     def backward_D_basic(self, netD, real, fake):

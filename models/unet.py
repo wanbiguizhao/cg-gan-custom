@@ -278,6 +278,7 @@ class DBlock(nn.Module):
       self.conv_sc = self.which_conv(in_channels, out_channels,
                                      kernel_size=1, padding=0)
   def shortcut(self, x):
+    # 先下采样然后再sc，还是先sc然后再下采样。
     if self.preactivation:
       if self.learnable_sc:
         x = self.conv_sc(x)
@@ -446,7 +447,7 @@ class content_encoder(nn.Module):
                                                     eps=self.SN_eps)
         self.blocks = []
         for index in range(len(self.arch['out_channels'])):
-
+            # DBblock 中间的隐层使用的是in_channels宽度还是out_channels的宽度。
             self.blocks += [[DBlock(in_channels=self.arch['in_channels'][index],
                                              out_channels=self.arch['out_channels'][index],
                                              which_conv=self.which_conv,
@@ -484,11 +485,13 @@ class content_encoder(nn.Module):
         h = x
         residual_features = []
         residual_features.append(h)
+        # 把每一层的输出都保留下来，作为一个特征层去使用。
         for index, blocklist in enumerate(self.blocks):
             for block in blocklist:
                 h = block(h)            
             if index in self.save_featrues[:-1]:
-                residual_features.append(h)        
+                residual_features.append(h)   
+        # h.shape [4, 1024, 4, 4]  图片原来尺寸128*128
         return h,residual_features
 
 
@@ -564,7 +567,8 @@ class decoder_textedit_addskip(nn.Module):
         self.mix_blocks = []
         #import pdb;pdb.set_trace()
         for index in range(len(self.arch['out_channels'])):
-            upsample_function = functools.partial(F.interpolate, scale_factor=2, mode="nearest") #mode=nearest is default
+            upsample_function = functools.partial(F.interpolate, scale_factor=2, mode="nearest") #mode=nearest is 
+            # 逐步的上采样，恢复到原来的图像大小。
                                     
 
             self.blocks += [[GBlock(in_channels = self.arch["in_channels"][index],
@@ -607,11 +611,13 @@ class decoder_textedit_addskip(nn.Module):
     
     def forward(self, x, residual_features, style_emd = None, style_fc = None,residual_features_style = None):
         #import pdb;pdb.set_trace()
+        # 意思是，让x(内容编码)和样式特征，原来的内容特征混合到一起进行学习。
         adapt_params = self.MLP(style_fc)
         self.adaptive_param_assign(adapt_params,self.blocks)
         h = x
         for index, blocklist in enumerate(self.blocks[:-1]):
             if self.resolution == 128:
+                # 这一步类似于unet，每一层传送过程中，都增加一些信，帮助恢复。
                 if index == 0:
                     #h=h
                     #h = torch.cat((h,h),dim=1)
@@ -653,6 +659,7 @@ class decoder_textedit_addskip(nn.Module):
                              
         out = self.blocks[-1](h)
         out = torch.tanh(out)
+        # 然后输出的是一个和原来一样的图像。
 
                                         
         return out
