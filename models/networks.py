@@ -388,8 +388,9 @@ class AttnDecoderRNN_Cell(nn.Module):
         self.output_size = output_size
         self.dropout_p = dropout_p
         self.max_length = max_length
-
+        # 把每一种偏旁部首都映射到hidden_size维度的向量。
         self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        # 莫非是双向attention？
         self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
@@ -399,19 +400,27 @@ class AttnDecoderRNN_Cell(nn.Module):
 
     def forward(self, input, hidden, encoder_outputs): #input:torch.Size([batch]); hidden:torch.Size([1, 4, 256]);encoder_ouput：torch.Size([64, batch, 256])
         #import pdb;pdb.set_trace()
+        #input是一个时刻的汉字对应的偏旁部首
+        # hidden 是上一个时刻的隐层的输出
+        # encoder_outputs 是编码器cnn对于图片的输出。
+        # 一个batch有很多汉字
+        # 一个汉字有很多笔画构成
+        # 每一个笔画都有对应的编码
         bs, c, h, w = encoder_outputs.shape
         T = h*w 
         encoder_outputs = encoder_outputs.reshape(bs, c, T)
-        encoder_outputs = encoder_outputs.permute(2,0,1) #torch.Size([64, batch, 256])
+        encoder_outputs = encoder_outputs.permute(2,0,1) #torch.Size([64, batch, 256]) T,bs,c
 
         embedded = self.embedding(input) #torch.Size([batch, 256])
         embedded = self.dropout(embedded) #torch.Size([batch, 256])
-
+        # 把偏旁部首对应的向量和上一个的向量，结合到一起，然后做一个线性映射。映射为64，表示是某一个偏旁部首的概率？
         attn_weights = F.softmax(self.attn(torch.cat((embedded, hidden[0]), 1)), dim=1) #torch.Size([batch, 64])
+        # 和编码器的输入作为内积，encoder_outputs.permute(1, 0, 2)->batch,T,C
+        # attn_weights.unsqueeze(1)-> batch,1,64 64和cnn，取完特征之后的特征图大小，代表每一个像素点的权重取值。 
         attn_applied = torch.bmm(attn_weights.unsqueeze(1), encoder_outputs.permute(1, 0, 2)) #torch.Size([batch, 1, 256])
-
+        # 把偏旁部首的嵌入层向量和在图片上对齐后的向量进行合并操作。
         output = torch.cat((embedded, attn_applied.squeeze(1)), 1) #torch.Size([batch, 512])
-        output = self.attn_combine(output).unsqueeze(0) #torch.Size([1,batch, 512])
+        output = self.attn_combine(output).unsqueeze(0) #torch.Size([1,batch, 512])再做一次线性映射。
 
         output = F.relu(output) #torch.Size([1, batch, 256])
         output, hidden = self.gru(output, hidden)#both:torch.Size([1, batch, 256])
@@ -433,7 +442,7 @@ class AttnDecoderRNN(nn.Module):
         self.tensor = T.ToTensor()
         self.resize = T.Resize(size = (128,128))
    
-    def cal(self,image,alpha_map):
+    def cal(self,image,alpha_map):# 看起来，这个是一个自定义函数。
         #import pdb;pdb.set_trace()
         alpha_map = alpha_map.cpu().detach().numpy().reshape(8,8)
         alpha_map =((alpha_map /alpha_map.max())*255).astype(np.uint8)
@@ -445,8 +454,10 @@ class AttnDecoderRNN(nn.Module):
 
     def forward(self,encode,image,text,text_length):
         #import pdb;pdb.set_trace()
-        batch_size = image.shape[0]
-        decoder_input = text[:,0]
+        #encode ccn对图像进行编码获得。
+        #text bxmaxlen , maxlen是每一个汉字对应的最多部首长度。
+        batch_size = image.shape[0]# 代表一次性有多少个图片
+        decoder_input = text[:,0]# 拿出汉字对应的第一个偏旁部首。
         decoder_hidden = torch.autograd.Variable(torch.zeros(1, batch_size, self.hidden_size)).cuda()        
         
         attention_map_list = []
@@ -457,13 +468,13 @@ class AttnDecoderRNN(nn.Module):
                 decoder_output, decoder_hidden, decoder_attention = self.attention_cell(decoder_input, decoder_hidden, encode) #decoder_output:torch.Size([4, 472]); decoder_hidden:torch.Size([1, 4, 256])
                 attention_map_list.append(decoder_attention)
                 loss += self.criterion(decoder_output, text[:,di])
-                decoder_input = text[:,di]
+                decoder_input = text[:,di]# 直接告诉正确答案
         else:
             for di in range(1, text.shape[1]):
                 decoder_output, decoder_hidden, decoder_attention =self.attention_cell(decoder_input, decoder_hidden, encode)
                 attention_map_list.append(decoder_attention)
                 loss += self.criterion(decoder_output, text[:,di])
-                topv, topi = decoder_output.data.topk(1)
+                topv, topi = decoder_output.data.topk(1)# 使用预测的答案。
                 ni = topi.squeeze()
                 decoder_input = ni
         
@@ -490,10 +501,10 @@ class AttnDecoderRNN(nn.Module):
 class CAM_normD(nn.Module):
     def __init__(self,nclass,channel_size,hidden_size,output_size,dropout_p=0.1,max_length = 64,D_ch =16, nWriter = 1300,iam = False):
         super(CAM_normD,self).__init__()
-        self.encoder =CNN(channel_size)
+        self.encoder =CNN(channel_size)# CNN作为特征提取器具。
         self.hidden_size = hidden_size
         
-        self.decoder_forradical = AttnDecoderRNN(hidden_size, output_size, dropout_p,max_length)
+        self.decoder_forradical = AttnDecoderRNN(hidden_size, output_size, dropout_p,max_length)# 从代码来看，output_size 对应的是偏旁部首的类型的长度，源代码+2是因为有两个填充字符。
         self.decoderfeat_forradical =nn.Sequential(
             nn.Conv2d(256, 128, 3, 1, 1), nn.InstanceNorm2d(128), nn.PReLU(), nn.AvgPool2d(2, 2),
             nn.Conv2d(128, 64, 3, 1, 1), nn.InstanceNorm2d(128), nn.PReLU(), nn.MaxPool2d(2, 2),
@@ -509,13 +520,13 @@ class CAM_normD(nn.Module):
             nn.Conv2d(256, 512, 3, 1, 1),nn.InstanceNorm2d(512),nn.PReLU(),
             nn.Conv2d(512, 512, 3, 1, 1),nn.InstanceNorm2d(512),nn.PReLU(),nn.MaxPool2d(2,2),
             nn.Conv2d(512, nWriter, 1, 1, 0)
-        )
+        )# 判断样式风格。
         self.decoder_writerID_forradical = nn.Sequential(
             nn.Conv2d(256, 256, 3, 1, 1),nn.InstanceNorm2d(256),nn.PReLU(),nn.MaxPool2d(2,2),
             nn.Conv2d(256, 512, 3, 1, 1),nn.InstanceNorm2d(512),nn.PReLU(),
             nn.Conv2d(512, 512, 3, 1, 1),nn.InstanceNorm2d(512),nn.PReLU(),nn.MaxPool2d(2,2),
             nn.Conv2d(512, nWriter, 1, 1, 0)
-        )
+        )# 判断字体的样式风格。
         
         self.nWriter = nWriter
         

@@ -11,7 +11,7 @@ CUDA_VISIBLE_DEVICES=0 python test.py \
 --batch_size 1 \
 --imgH 128 \
 --imgW 128 \
---gpu_ids 0 \
+--gpu_ids -1 \
 --num_test 10 \
 --epoch latest \
 --G_ch 64 \

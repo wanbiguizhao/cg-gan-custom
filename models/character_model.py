@@ -71,7 +71,7 @@ class CHARACTERModel(BaseModel):
             self.converter = AttnLabelConverter(alphabet_radical)
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)  # define GAN loss.
             # self.criterionunetD =networks.unetDisLoss().to(self.device)
-            self.criterionD =networks.DisLoss().to(self.device)
+            self.criterionD =networks.DisLoss().to(self.device)# 判断D网络能不能区分真假图片。
             self.criterionIdt = torch.nn.L1Loss()
             self.criterionCls = torch.nn.CrossEntropyLoss()
             
@@ -177,11 +177,11 @@ class CHARACTERModel(BaseModel):
         self.loss_G_radical_ID = self.criterionCls(radical_wrtiterID, self.lexicon_B_writerID)
         #loss_cont_idt
         self.cont_g, _ = self.netContentEncoder(self.img_print2write)
-        self.loss_G_cont_idt = self.criterionIdt(self.cont, self.cont_g) * lambda_content
+        self.loss_G_cont_idt = self.criterionIdt(self.cont, self.cont_g) * lambda_content # 计算对于内容编码的损失。cont 来源于B。
         #loss_idt
         self.cont_w,self.residual_features_w = self.netContentEncoder(self.img_write)
         img_idt = self.netdecoder(self.cont_w,self.residual_features_w,self.style_emd,self.style_fc,self.residual_features_style)
-        self.loss_G_idt = self.criterionIdt(img_idt, self.img_write)
+        self.loss_G_idt = self.criterionIdt(img_idt, self.img_write)# 使用自己的图片，重新生成的图片，应该尽量奶盖保证一致，模型的稳定性
         
         (self.loss_G + self.loss_G_idt+self.loss_G_lexicon + self.loss_G_ID +self.loss_G_radical_ID+self.loss_G_cont_idt).backward()
                

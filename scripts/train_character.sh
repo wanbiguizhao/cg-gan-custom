@@ -8,7 +8,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 --name exp \
 --model character \
 --no_dropout \
---batch_size 16 \
+--batch_size 4 \
 --imgH 128 \
 --imgW 128 \
 --num_writer 399 \
