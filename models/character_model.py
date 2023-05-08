@@ -61,7 +61,7 @@ class CHARACTERModel(BaseModel):
 
             if opt.alphabet[-4:] == '.txt':
                 alphabet_char = open(opt.alphabet, 'r').read().splitlines()
-            alphabet_char = ''.join(alphabet_char)
+            #alphabet_char = ''.join(alphabet_char) 2023-05-08 注释掉，需要保留特殊字符
             # 
             self.netD = networks.define_D(len(alphabet_char)+1, opt.input_nc,opt.hidden_size,len(alphabet_char)+2,opt.dropout_p,opt.max_length,opt.D_ch,
                                             opt.num_writer,opt.norm, opt.init_type, opt.init_gain, self.gpu_ids,iam = False)# 这块生成的是判别器，主要是评分使用的。

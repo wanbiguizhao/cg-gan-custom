@@ -468,9 +468,9 @@ class AttnDecoderRNN(nn.Module):
             for di in range(1, text.shape[1]):
                 decoder_output, decoder_hidden, decoder_attention = self.attention_cell(decoder_input, decoder_hidden, encode) #decoder_output:torch.Size([4, 472]); decoder_hidden:torch.Size([1, 4, 256])
                 attention_map_list.append(decoder_attention)# 记录的是每一个偏旁部首，在style，特征图上的的权重，越相关，权重越高，
-                print(text[:,di])
+                #print(text[:,di])
                 decoder_input = text[:,di].clone()# 直接告诉正确答案
-                #loss += self.criterion(decoder_output, text[:,di].clone())
+                loss += self.criterion(decoder_output, text[:,di].clone())
         else:
             for di in range(1, text.shape[1]):
                 decoder_output, decoder_hidden, decoder_attention =self.attention_cell(decoder_input, decoder_hidden, encode)
