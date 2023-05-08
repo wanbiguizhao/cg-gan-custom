@@ -469,7 +469,7 @@ class AttnDecoderRNN(nn.Module):
                 decoder_output, decoder_hidden, decoder_attention = self.attention_cell(decoder_input, decoder_hidden, encode) #decoder_output:torch.Size([4, 472]); decoder_hidden:torch.Size([1, 4, 256])
                 attention_map_list.append(decoder_attention)# 记录的是每一个偏旁部首，在style，特征图上的的权重，越相关，权重越高，
                 #print(text[:,di])
-                decoder_input = text[:,di].clone()# 直接告诉正确答案
+                decoder_input = text[:,di]# 直接告诉正确答案
                 loss += self.criterion(decoder_output, text[:,di].clone())
         else:
             for di in range(1, text.shape[1]):
@@ -477,7 +477,7 @@ class AttnDecoderRNN(nn.Module):
                 attention_map_list.append(decoder_attention)
                 loss += self.criterion(decoder_output, text[:,di])# gru预测的偏旁部首的概率和真实的偏旁部首的概率。
                 topv, topi = decoder_output.data.topk(1)# 使用预测的答案。
-                ni = topi.squeeze()
+                ni = topi.squeeze(-1)
                 decoder_input = ni
         
         _,c,h,w=encode.shape
