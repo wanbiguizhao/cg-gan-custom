@@ -104,7 +104,7 @@ class CHARACTERModel(BaseModel):
             self.lexicon_B = input['B_lexicon']
             self.new_lexicon_A,self.new_lexicon_A_length = self.converter.encode(self.lexicon_A)
             self.new_lexicon_B,self.new_lexicon_B_length = self.converter.encode(self.lexicon_B)
-            
+            #生成每个字体的部首对应的样式。
             self.lexicon_A_writerID = lexicontoid(self.new_lexicon_A_length,self.writerID).cuda()
             self.lexicon_B_writerID = lexicontoid(self.new_lexicon_B_length,self.writerID).cuda()
             
@@ -164,7 +164,8 @@ class CHARACTERModel(BaseModel):
         
         lambda_loc = self.opt.lambda_loc
         lambda_content = self.opt.lambda_Lcontent
-        
+        #输入 判别器是生成的img_print2write图片，图片汉字对应的偏旁部首，图片汉字对应的
+        #预测的部首 ，loss 偏旁部首的损失  ，out 是D网络的判别输出  ，字的类型， 偏旁部首的ID
         pred_radical, loss, out, writerID, radical_wrtiterID = self.netD(self.img_print2write, self.new_lexicon_B, self.new_lexicon_B_length)        
         #loss_G
         # self.loss_unetG, self.loss_unetG_middle = self.criterionunetD(out, bottleneck_out, True)

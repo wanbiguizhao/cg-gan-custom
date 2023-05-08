@@ -150,10 +150,10 @@ class AttnLabelConverter(object):
         list_token = ['[GO]', '[s]']  # ['[s]','[UNK]','[PAD]','[GO]']
         #import pdb;pdb.set_trace()
         list_character = list(character)
-        radical_set=set()
-        for  chara in list_character:
-            radical_set.update(chara.split(':')[1].split(' '))
-        list_character=list(radical_set)
+        # radical_set=set()
+        # for  chara in list_character:
+        #     radical_set.update(chara.split(':')[1].split(' '))
+        # list_character=list(radical_set)
         self.character = list_token + list_character # bug fix 统一数据和字典的数据定义
 
         self.dict = {}

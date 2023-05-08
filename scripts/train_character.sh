@@ -3,12 +3,12 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 --dataroot data/train_set \
 --ttfRoot data/font \
 --corpusRoot data/char_set.txt \
---alphabet data/char_set.txt \
+--alphabet data/alphabet.txt \
 --dictionaryRoot data/dictionary.txt \
 --name exp \
 --model character \
 --no_dropout \
---batch_size 4 \
+--batch_size 1 \
 --imgH 128 \
 --imgW 128 \
 --num_writer 399 \

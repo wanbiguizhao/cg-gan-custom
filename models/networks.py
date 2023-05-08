@@ -423,6 +423,7 @@ class AttnDecoderRNN_Cell(nn.Module):
         output = self.attn_combine(output).unsqueeze(0) #torch.Size([1,batch, 512])再做一次线性映射。
 
         output = F.relu(output) #torch.Size([1, batch, 256])
+        # output 首先偏旁部首变成向量，偏旁部首的向量和隐层共同作用形成权值，权值作用在图片上，注意力加权后，形成新的图片特征，然后图片特征再和原来基于笔画的embedded进行组合。
         output, hidden = self.gru(output, hidden)#both:torch.Size([1, batch, 256])
 
         output = self.out(output[0]) #torch.Size([4, 366])
@@ -432,7 +433,7 @@ class AttnDecoderRNN_Cell(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self,hidden_size, output_size, dropout_p,max_length,teach_forcing_prob=0.5):
+    def __init__(self,hidden_size, output_size, dropout_p,max_length,teach_forcing_prob=0.1):
         super(AttnDecoderRNN,self).__init__()
         self.attention_cell =AttnDecoderRNN_Cell(hidden_size, output_size, dropout_p,max_length)
         self.teach_forcing_prob = teach_forcing_prob
@@ -457,34 +458,36 @@ class AttnDecoderRNN(nn.Module):
         #encode ccn对图像进行编码获得。
         #text bxmaxlen , maxlen是每一个汉字对应的最多部首长度。
         batch_size = image.shape[0]# 代表一次性有多少个图片
-        decoder_input = text[:,0]# 拿出汉字对应的第一个偏旁部首。
+        decoder_input = text[:,0].clone()# 拿出汉字对应的第一个偏旁部首。
         decoder_hidden = torch.autograd.Variable(torch.zeros(1, batch_size, self.hidden_size)).cuda()        
         
-        attention_map_list = []
+        attention_map_list = []# 记录的是每一个偏旁部首对应的特征图。
         loss = 0.0
         teach_forcing = True if random.random() > self.teach_forcing_prob else False
         if teach_forcing:
             for di in range(1, text.shape[1]):
                 decoder_output, decoder_hidden, decoder_attention = self.attention_cell(decoder_input, decoder_hidden, encode) #decoder_output:torch.Size([4, 472]); decoder_hidden:torch.Size([1, 4, 256])
-                attention_map_list.append(decoder_attention)
-                loss += self.criterion(decoder_output, text[:,di])
-                decoder_input = text[:,di]# 直接告诉正确答案
+                attention_map_list.append(decoder_attention)# 记录的是每一个偏旁部首，在style，特征图上的的权重，越相关，权重越高，
+                print(text[:,di])
+                decoder_input = text[:,di].clone()# 直接告诉正确答案
+                #loss += self.criterion(decoder_output, text[:,di].clone())
         else:
             for di in range(1, text.shape[1]):
                 decoder_output, decoder_hidden, decoder_attention =self.attention_cell(decoder_input, decoder_hidden, encode)
                 attention_map_list.append(decoder_attention)
-                loss += self.criterion(decoder_output, text[:,di])
+                loss += self.criterion(decoder_output, text[:,di])# gru预测的偏旁部首的概率和真实的偏旁部首的概率。
                 topv, topi = decoder_output.data.topk(1)# 使用预测的答案。
                 ni = topi.squeeze()
                 decoder_input = ni
         
         _,c,h,w=encode.shape
-        num_labels = text_length.data.sum()
-        new_encode = torch.zeros(num_labels,c,h,w).type_as(encode.data)
+        num_labels = text_length.data.sum()# 记录总共有的偏旁部首。
+        new_encode = torch.zeros(num_labels,c,h,w).type_as(encode.data)#这个编码似乎是，偏旁部首对于偏旁部首特征图的编码。
         start = 0
+        # 从代码上看，应该是把每一个部首对应的，权重*特征后的数据单独保存起来，去掉了填充的字符对应的编码。
         for i,length in enumerate(text_length.data):
             #import pdb;pdb.set_trace()               
-            attention_maps = attention_map_list[0:length]
+            attention_maps = attention_map_list[0:length]# 这个代码看起来有问题，这里似乎每次都是保存的第一个字的长度。
             for j,alpha_map in enumerate(attention_maps):
                 #import pdb;pdb.set_trace()
                 alpha_map_weight = ((alpha_map[i]-alpha_map[i].min())/(alpha_map[i].max()-alpha_map[i].min())).reshape(1,h,w)
@@ -537,13 +540,14 @@ class CAM_normD(nn.Module):
 
     def forward(self, image, text_radical, length_radical):
         
-        encode = self.encoder(image)
+        encode = self.encoder(image)# batch,256,8,8
         b, c, _, _ = encode.size() #batch,256
         
         # out, bottleneck_out = self.unetD(image)
-        out = self.D(image)
+        out = self.D(image)#[bs,1]# 单独预测的分数。
+        # 计算预测的偏旁部首的损失，偏旁部首对应的特征图。
         loss_forradical,new_encode= self.decoder_forradical(encode,image,text_radical,length_radical)
-        pred_radical = self.decoderfeat_forradical(new_encode)
+        pred_radical = self.decoderfeat_forradical(new_encode)# 是预测的偏旁部首的损失。
         global_writter_ID = self.decoder_writerID(encode).view(b,self.nWriter,-1).mean(2)
         radical_writter_ID = self.decoder_writerID_forradical(new_encode).view(new_encode.size()[0],self.nWriter,-1).mean(2)
             
