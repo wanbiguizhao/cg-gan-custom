@@ -433,7 +433,7 @@ class AttnDecoderRNN_Cell(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self,hidden_size, output_size, dropout_p,max_length,teach_forcing_prob=0.1):
+    def __init__(self,hidden_size, output_size, dropout_p,max_length,teach_forcing_prob=0.5):
         super(AttnDecoderRNN,self).__init__()
         self.attention_cell =AttnDecoderRNN_Cell(hidden_size, output_size, dropout_p,max_length)
         self.teach_forcing_prob = teach_forcing_prob
@@ -487,14 +487,14 @@ class AttnDecoderRNN(nn.Module):
         # 从代码上看，应该是把每一个部首对应的，权重*特征后的数据单独保存起来，去掉了填充的字符对应的编码。
         for i,length in enumerate(text_length.data):
             #import pdb;pdb.set_trace()               
-            attention_maps = attention_map_list[0:length]# 这个代码看起来有问题，这里似乎每次都是保存的第一个字的长度。
+            attention_maps = attention_map_list[0:length]# 这个代码没有问题，i表示第i个字，每个字有自己的长度。
             for j,alpha_map in enumerate(attention_maps):
                 #import pdb;pdb.set_trace()
                 alpha_map_weight = ((alpha_map[i]-alpha_map[i].min())/(alpha_map[i].max()-alpha_map[i].min())).reshape(1,h,w)
                 encode_weight = encode[i]*alpha_map_weight
                 new_encode[start] = encode_weight
                 start +=1
-        
+        # new_encode 是每个偏旁部首对应的特征图 num_labels,c,h,w
         return loss,new_encode             
         
   
@@ -516,7 +516,7 @@ class CAM_normD(nn.Module):
             )        
         
         # self.unetD = unet.Unet_Discriminator(D_ch,input_nc =channel_size)
-        self.D = unet.Discriminator(D_ch,input_nc =channel_size)
+        self.D = unet.Discriminator(D_ch,input_nc =channel_size)# 逐步变宽，最后输出的维度是1.
         
         self.decoder_writerID = nn.Sequential(
             nn.Conv2d(256, 256, 3, 1, 1),nn.InstanceNorm2d(256),nn.PReLU(),nn.MaxPool2d(2,2),
@@ -545,9 +545,9 @@ class CAM_normD(nn.Module):
         
         # out, bottleneck_out = self.unetD(image)
         out = self.D(image)#[bs,1]# 单独预测的分数。
-        # 计算预测的偏旁部首的损失，偏旁部首对应的特征图。
+        # 计算预测的偏旁部首的损失，偏旁部的特征和cnn提取的特征图，加权想乘之后的结果。new_encode 应该是一个b,c，8*8的特征图。
         loss_forradical,new_encode= self.decoder_forradical(encode,image,text_radical,length_radical)
-        pred_radical = self.decoderfeat_forradical(new_encode)# 是预测的偏旁部首的损失。
+        pred_radical = self.decoderfeat_forradical(new_encode)# 是预测的偏旁部首的损失,这部分的代码来自于cyclegan
         global_writter_ID = self.decoder_writerID(encode).view(b,self.nWriter,-1).mean(2)
         radical_writter_ID = self.decoder_writerID_forradical(new_encode).view(new_encode.size()[0],self.nWriter,-1).mean(2)
             

@@ -54,7 +54,8 @@ class ValDataset(Dataset):
     
     def __getitem__(self, index):
         path,id,label = self.samples[index]
-        img = self.loader(path)
+
+        img = self.loader(f"tmp/images/{path}")
         if self.target_transform is not None:
             img = self.target_transform(img)
         label_target = label

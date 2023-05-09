@@ -66,7 +66,7 @@ class CHARACTERModel(BaseModel):
             self.netD = networks.define_D(len(alphabet_char)+1, opt.input_nc,opt.hidden_size,len(alphabet_char)+2,opt.dropout_p,opt.max_length,opt.D_ch,
                                             opt.num_writer,opt.norm, opt.init_type, opt.init_gain, self.gpu_ids,iam = False)# 这块生成的是判别器，主要是评分使用的。
             # len(alphabet_char)+1 这个参数没有使用。
-            # len(alphabet_char)+2 这个属于输出使用。
+            # len(alphabet_char)+2 这个属于输出使用，用于预测输出的笔画类型。
             self.converterATT = strLabelConverterForAttention(alphabet_char)# ?似乎没有被使用过。
             self.converter = AttnLabelConverter(alphabet_radical)
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)  # define GAN loss.
@@ -167,6 +167,7 @@ class CHARACTERModel(BaseModel):
         #输入 判别器是生成的img_print2write图片，图片汉字对应的偏旁部首，图片汉字对应的
         #预测的部首 ，loss 偏旁部首的损失  ，out 是D网络的判别输出  ，字的类型， 偏旁部首的ID
         pred_radical, loss, out, writerID, radical_wrtiterID = self.netD(self.img_print2write, self.new_lexicon_B, self.new_lexicon_B_length)        
+        # 预测的部首，损失，out->cnn提取的特征，风格特征，部首的风格特征。
         #loss_G
         # self.loss_unetG, self.loss_unetG_middle = self.criterionunetD(out, bottleneck_out, True)
         self.loss_unetG_middle = self.criterionD(out, True)
