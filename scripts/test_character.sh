@@ -9,6 +9,7 @@ CUDA_VISIBLE_DEVICES=0 python test.py \
 --model character \
 --no_dropout \
 --batch_size 1 \
+--num_writer 11 \
 --imgH 128 \
 --imgW 128 \
 --gpu_ids -1 \
