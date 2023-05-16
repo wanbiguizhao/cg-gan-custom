@@ -24,3 +24,4 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 --val_num 10 \
 --val_seenstyleRoot data/seenstyle_oov.txt \
 --val_unseenstyleRoot data/unseenstyle_oov.txt \
+--debug
