@@ -26,7 +26,7 @@ def pil_loader(path):
         return img.convert('RGB')
 
 def draw(font_path,label):
-    font = ImageFont.truetype(font_path,80)
+    font = ImageFont.truetype(font_path,64)
     label_w, label_h = font.getsize(label)
     img_target =Image.new('RGB', (label_w,label_h),(255,255,255))
     drawBrush = ImageDraw.Draw(img_target)

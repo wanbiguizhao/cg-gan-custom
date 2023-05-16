@@ -59,8 +59,8 @@ def font2img(base_src_font_dir,base_dst_img_dir):
 
             np_square_img=255-np.array(square_img)
             square_img=Image.fromarray(np_square_img)
-            square_img.save(f"{dst_img_dir}/{str(cnt).rjust(3,'0')}_{ch}.png")
-            if cnt>2000:
+            square_img.save(f"{dst_img_dir}/{str(cnt).rjust(4,'0')}_{ch}.png")
+            if cnt>4000:
                 break
     
     canvas_size=64
@@ -77,7 +77,7 @@ def font2img(base_src_font_dir,base_dst_img_dir):
     for png_path in glob(f"{base_dst_img_dir}/*/*.png"):
         png_path_list.append(png_path[len(base_dst_img_dir)+1:])
     
-    open("images_info_list","w").write("\n".join(sorted(png_path_list,key=lambda x: x[-5:])))
+    open(f"{base_dst_img_dir}/images_info_list","w").write("\n".join(sorted(png_path_list,key=lambda x: x[-5:])))
     # 生成所有字体文件图片信息
 
 
