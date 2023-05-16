@@ -30,9 +30,14 @@ def processGlyphNames(GlyphNames):
         elif char.startswith('Identity.'):
             char=char[9:]
             base=10
-            
+        if char.startswith('SF'):
+            char = char[2:]
+            base=10
         elif char.startswith('glyph'):
             char=char[5:]
+            base=10
+        elif char.startswith('cid'):
+            char=char[3:]
             base=10
         else:
             #print(char)
