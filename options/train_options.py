@@ -44,6 +44,8 @@ class TrainOptions(BaseOptions):
         parser.add_argument('--dictionaryRoot', type=str, required=True, help='path to radical_dictionary')
         parser.add_argument('--val_seenstyleRoot', type=str, required=True, help='path to seenstyle_oov list')
         parser.add_argument('--val_unseenstyleRoot', type=str, required=True, help='path to unseenstyle_oov list')
+        parser.add_argument('--debug', action='store_true', help='debug code ')
+
         self.isTrain = True
         
         return parser

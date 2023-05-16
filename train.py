@@ -13,11 +13,11 @@ if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
     import debugpy
     #允许debug sh启动的程序了。
-
-    print("Enabling attach starts.")
-    debugpy.listen(address=('localhost', 9310))
-    debugpy.wait_for_client()
-    print("Enabling attach ends.")
+    if opt.debug:
+        print("Enabling attach starts.")
+        debugpy.listen(address=('0.0.0.0', 9310))
+        debugpy.wait_for_client()
+        print("Enabling attach ends.")
     dataset = lmdb_dataset.ConcatLmdbDataset(
         dataset_list=opt.dataroot, 
         batchsize_list=opt.batch_size, 
