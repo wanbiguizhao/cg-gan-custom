@@ -57,17 +57,17 @@ def pil_loader(path):
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
-class ValDataset(Dataset):
-    def __init__(self,root,ttfRoot,target_transform = resizeKeepRatio((128, 128))):
+class InferDataset(Dataset):
+    def __init__(self,content_image_dir,style_ttfRoot,target_transform = resizeKeepRatio((128, 128))):
         #import pdb;pdb.set_trace()
-        samples = get_content_image_data(root)
+        samples = get_content_image_data(content_image_dir)
         #import pdb;pdb.set_trace()
         self.samples = samples
         self.ids = [s[1] for s in samples]
         self.target_transform = target_transform
         self.loader = pil_loader
         self.font_path = []
-        ttf_dir = os.walk(ttfRoot)
+        ttf_dir = os.walk(style_ttfRoot)
         for path, d, filelist in ttf_dir:
             for filename in filelist:
                 if filename.endswith('.ttf') or filename.endswith('.ttc'):
@@ -94,4 +94,5 @@ class ValDataset(Dataset):
             'A_label': style_label, 'B_label': content_target, 'val':True}
 
 if __name__=="__main__":
+    val=InferDataset()
     pass
