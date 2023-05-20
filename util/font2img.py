@@ -21,7 +21,7 @@ from glob import glob
 #from torchvision import transforms
 PROJECT_DIR=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(PROJECT_DIR)
-from charset_util import processGlyphNames
+from .charset_util import processGlyphNames
 
 
 def is_contains_chinese(strs):

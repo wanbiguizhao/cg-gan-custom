@@ -14,7 +14,7 @@ class InferOptions(BaseOptions):
         parser.add_argument('--aspect_ratio', type=float, default=1.0, help='aspect ratio of result images')
         parser.add_argument('--phase', type=str, default='test', help='train, val, test, etc')
         # Dropout and Batchnorm has different behavioir during training and test.
-        #parser.add_argument('--eval', action='store_true', help='use eval mode during test time.')
+        parser.add_argument('--eval', action='store_true', help='use eval mode during test time.')
         parser.add_argument('--num_test', type=int, default=3000, help='how many test images to run')
         parser.add_argument('--state', type=str, default='seenstyle_oov', help='in which scenario to test')
         parser.add_argument('--sty_refRoot', type=str, default='images/img_sty_reference.png', help='which style reference to test')

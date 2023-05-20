@@ -35,10 +35,12 @@ if __name__ == '__main__':
     if opt.eval:
         model.eval()
     for index in range(len(infer_dataset)):     
-        data=infer_dataset(index)  
+        data=infer_dataset[index] 
+        content_label=data['B_label']
+        data = {'A': data['A'].unsqueeze(0), 'B': data['B'].unsqueeze(0)}
         model.set_single_input(data)
         model.test()
         visuals =model.get_current_visuals()
-        save_single_image(save_dir, opt.label,visuals,aspect_ratio=opt.aspect_ratio,width=opt.display_winsize)
+        save_single_image(save_dir, content_label,visuals,aspect_ratio=opt.aspect_ratio,width=opt.display_winsize)
     #img_path = model.get_image_paths()
     print('preprocessing target image...')

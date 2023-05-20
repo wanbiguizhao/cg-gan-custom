@@ -42,7 +42,7 @@ def get_content_image_data(image_file_path=None,base_dir=None):
             # 找到里面的图片
             for image_path in glob(os.path.join(base_dir,hanzi_dir,"*.png")):
                 result.append([han,image_path[len(base_dir)+1:],pil_loader(image_path)])
-            print(result[-1])
+            #print(result[-1])
         return result
     assert os.path.exists(image_file_path)
     assert os.path.isfile(image_file_path)
@@ -60,18 +60,21 @@ def pil_loader(path):
 class InferDataset(Dataset):
     def __init__(self,content_image_dir,style_ttfRoot,target_transform = resizeKeepRatio((128, 128))):
         #import pdb;pdb.set_trace()
-        samples = get_content_image_data(content_image_dir)
+        samples = get_content_image_data(base_dir=content_image_dir)
         #import pdb;pdb.set_trace()
         self.samples = samples
         self.ids = [s[1] for s in samples]
         self.target_transform = target_transform
         self.loader = pil_loader
         self.font_path = []
-        ttf_dir = os.walk(style_ttfRoot)
-        for path, d, filelist in ttf_dir:
-            for filename in filelist:
-                if filename.endswith('.ttf') or filename.endswith('.ttc'):
-                    self.font_path.append(path+'/'+filename)
+        if os.path.isfile(style_ttfRoot):
+            self.font_path.append(style_ttfRoot)
+        else:
+            ttf_dir = os.walk(style_ttfRoot)
+            for path, d, filelist in ttf_dir:
+                for filename in filelist:
+                    if filename.endswith('.ttf') or filename.endswith('.ttc'):
+                        self.font_path.append(path+'/'+filename)
     
     def __len__(self):
         return len(self.samples)
