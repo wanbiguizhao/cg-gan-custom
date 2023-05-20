@@ -68,7 +68,7 @@ class CHARACTERModel(BaseModel):
             # len(alphabet_char)+1 这个参数没有使用。
             # len(alphabet_char)+2 这个属于输出使用，用于预测输出的笔画类型。
             self.converterATT = strLabelConverterForAttention(alphabet_char)# ?似乎没有被使用过。
-            self.converter = AttnLabelConverter(alphabet_radical)
+            self.converter = AttnLabelConverter(alphabet_char)
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)  # define GAN loss.
             # self.criterionunetD =networks.unetDisLoss().to(self.device)
             self.criterionD =networks.DisLoss().to(self.device)# 判断D网络能不能区分真假图片。
