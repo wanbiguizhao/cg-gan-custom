@@ -94,5 +94,4 @@ class ValDataset(Dataset):
             'A_label': style_label, 'B_label': content_target, 'val':True}
 
 if __name__=="__main__":
-    get_content_image_data(base_dir="/home/liukun/ocr/DocumentAI_OCR/tmp/word2imgtop10")
     pass
