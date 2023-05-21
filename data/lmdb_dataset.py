@@ -10,7 +10,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import string
-
+from data import get_content_image_data
 
 class ConcatLmdbDataset(Dataset):
     def __init__(self, dataset_list, batchsize_list, 
@@ -161,7 +161,112 @@ class lmdbDataset(Dataset):
             return {'A': img, 'B': img_target, 'A_paths': (index-1) % len(self.corpus), 'writerID': writerID,
             'A_label': label, 'B_label': label_target,'root':self.root,'A_lexicon':lexicon,'B_lexicon':lexicon_target}
             
+class imageDataset(Dataset):
+    def __init__(self,style_database_root=None, image_content_path=None, corpus=None,
+        transform_img=None,transform_target_img=None, alphabet=string.printable[:-6], radical_dict = None):
+        assert transform_img != None
+        self.env = lmdb.open(
+            style_database_root,
+            max_readers=1,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False)
 
+        if not self.env:
+            print('cannot open lmdb from %s' % (style_database_root))
+            sys.exit(0)
+
+        with self.env.begin(write=False) as txn:
+            nSamples = int(txn.get('num-samples'.encode()))
+            self.nSamples = nSamples
+        
+        self.root = style_database_root
+        self.transform_img = transform_img
+        self.transform_target_img = transform_target_img
+        self.image_content_nSamples = get_content_image_data(base_dir=image_content_path)
+        self.corpus = corpus# 语料表
+        self.alphabet = alphabet#字母表
+        self.radical_dict = radical_dict# 偏旁部首字典
+
+        # samples = get_content_image_data(base_dir=content_image_dir)
+        # #import pdb;pdb.set_trace()
+        # self.samples = samples
+        # self.ids = [s[1] for s in samples]
+        # self.target_transform = target_transform
+        # self.loader = pil_loader
+        # self.font_path = []
+        # self.style_corpus = corpus# 语料表
+        # if os.path.isfile(style_ttfRoot):
+        #     self.font_path.append(style_ttfRoot)
+        # else:
+        #     ttf_dir = os.walk(style_ttfRoot)
+        #     for path, d, filelist in ttf_dir:
+        #         for filename in filelist:
+        #             if filename.endswith('.ttf') or filename.endswith('.ttc') or filename.endswith('.otf'):
+        #                 self.font_path.append(path+'/'+filename)
+    
+    def __len__(self):
+        return self.nSamples
+    
+
+    def clear_lexicon(self,origin_lexicon):
+        lexicon=origin_lexicon
+        space_list = ['⿰','⿱','⿳','⿺','⿶','⿹','⿸','⿵','⿲','⿴','⿷','⿻']
+        lexicon_list_old = lexicon.split()
+        lexicon_list = []
+        for i in lexicon_list_old:
+            if i not in space_list:
+                lexicon_list.append(i)
+        lexicon = ' '.join(lexicon_list)# 这块就是所有去掉特殊字符之后⿰，都是偏旁部首。
+        return lexicon
+    def __getitem__(self, index):
+        assert index <= len(self), 'index range error'
+        index += 1
+        with self.env.begin(write=False) as txn:
+            
+            label_key = 'label-%09d' % index
+            label = str(txn.get(label_key.encode()).decode('utf-8'))
+            if label == '##':
+                return self[index + 1]
+
+            lexicon_Key = 'lexicon-%09d' % index #词典信息
+            lexicon = str(txn.get(lexicon_Key.encode()).decode('utf-8'))
+            lexicon=self.clear_lexicon(lexicon)
+            # space_list = ['⿰','⿱','⿳','⿺','⿶','⿹','⿸','⿵','⿲','⿴','⿷','⿻']
+            # lexicon_list_old = lexicon.split()
+            # lexicon_list = []
+            # for i in lexicon_list_old:
+            #     if i not in space_list:
+            #         lexicon_list.append(i)
+            # lexicon = ' '.join(lexicon_list)# 这块就是所有去掉特殊字符之后⿰，都是偏旁部首。
+         
+            img_key = 'image-%09d' % index
+            imgbuf = txn.get(img_key.encode())
+            buf = six.BytesIO()
+            buf.write(imgbuf)
+            buf.seek(0)
+            try:
+                img_style = Image.open(buf).convert('RGB')
+            except IOError:
+                print('Corrupted image for %d' % index)
+                return self[index + 1]
+            
+            writerID_key = 'writerID-%09d' % index
+            styleID = int(txn.get(writerID_key.encode()))
+
+
+            content_label,rel_path,img_content = self.image_content_nSamples[index%len(self.image_content_nSamples)]
+            lexicon_target = self.radical_dict[content_label]
+            lexicon_target=self.clear_lexicon(lexicon_target)
+
+
+            img_content = self.transform_target_img(img_content)
+            img_style = self.transform_img(img_style)
+
+            return {'A': img_style, 'B': img_content, 'A_paths': (index-1) % len(self.image_content_nSamples), "B_paths":rel_path,'writerID': styleID,
+            'A_label': label, 'B_label': content_label,'root':self.root,'A_lexicon':lexicon,'B_lexicon':lexicon_target}
+        
 class resizeKeepRatio(object):
 
     def __init__(self, size, interpolation=Image.BILINEAR, 
@@ -198,8 +303,25 @@ class resizeKeepRatio(object):
         img.sub_(0.5).div_(0.5)
         return img
 
-
+def test_image_dataset():
+    alphabet_char = open("data/alphabet.txt", 'r').read().splitlines()
+    alphabet = ''.join(alphabet_char)
+    radical_dict = dict()
+    total = open('data/IDS_dictionary.txt','r').read().splitlines()
+    for line in total:
+        char,radical = line.split(':')[0],line.split(':')[1]
+        radical_dict[char] = radical
+    ds=imageDataset(style_database_root="/home/liukun/gan/cg-gan-custom/data/train_set",
+                image_content_path="tmp/hanimages/word2imgtop10",
+                alphabet=alphabet,
+                transform_img=resizeKeepRatio((128,128)),
+                transform_target_img=resizeKeepRatio((128,128)),
+                radical_dict=radical_dict
+        )
+    print(len(ds))
+    print(ds[1])
 if __name__ =='__main__':
+    test_image_dataset()
     dataset = ConcatLmdbDataset(
         dataset_list = ['data/FFG_lmdb_dataset_423fonts/test_399fonts_oov_seenstyles_addradical'],
         batchsize_list = [1],
