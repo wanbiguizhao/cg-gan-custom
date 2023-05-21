@@ -117,7 +117,7 @@ class CHARACTERModel(BaseModel):
 
         self.img_write = input['A'].to(self.device)# style image
         self.img_print = input['B'].to(self.device)# content image 来自原语料数据txt
-        self.visual_names = ['img_print2write']
+        self.visual_names = ['img_print2write','img_print']
 
     def forward(self):
 

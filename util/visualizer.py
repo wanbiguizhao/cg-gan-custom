@@ -57,7 +57,7 @@ def save_single_image(save_dir,content, visuals,aspect_ratio=1.0, width=256):
         if 'rec' in label:
             continue
         im = util.tensor2im(im_data)        
-        save_path = os.path.join(save_dir, '%s_img_target.png' %content)
+        save_path = os.path.join(save_dir, f'{content}_{label}.png' )
         util.save_image(im, save_path, aspect_ratio=aspect_ratio)
         
 

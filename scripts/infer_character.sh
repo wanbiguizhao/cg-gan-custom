@@ -1,9 +1,9 @@
 set -ex
 CUDA_VISIBLE_DEVICES=0 python infer.py \
 --checkpoints_dir tmp \
---ttfRoot tmp/font/思源宋体-Regular.otf \
+--ttfRoot tmp/font/ \
 --save_dir tmp/infer_images \
---cont_refRoot tmp/hanimages/word2imgtop10_64 \
+--cont_refRoot tmp/hanimages/word2imgtop10 \
 --sty_refRoot images_iam/img_sty_reference.png \
 --name exp \
 --model character \

@@ -73,14 +73,14 @@ class InferDataset(Dataset):
             ttf_dir = os.walk(style_ttfRoot)
             for path, d, filelist in ttf_dir:
                 for filename in filelist:
-                    if filename.endswith('.ttf') or filename.endswith('.ttc'):
+                    if filename.endswith('.ttf') or filename.endswith('.ttc') or filename.endswith('.otf'):
                         self.font_path.append(path+'/'+filename)
     
     def __len__(self):
         return len(self.samples)
     
     def __getitem__(self, index):
-        label,id,img_content = self.samples[index]
+        label,rel_path,img_content = self.samples[index]
         img_content=self.target_transform(img_content)# 这个是可以提前做，避免训练的时候做
         # img_style = self.loader(f"tmp/images/{path}")
         # if self.target_transform is not None:
@@ -93,7 +93,7 @@ class InferDataset(Dataset):
         img_style = draw(font_path,style_label)
         img_style = self.target_transform(img_style)
         styleID = id             
-        return {'A': img_style, 'B': img_content, 'A_paths': index, 'writerID': styleID,
+        return {'A': img_style, 'B': img_content, 'A_paths': index, 'writerID': styleID,"content_rel_path":rel_path,
             'A_label': style_label, 'B_label': content_target, 'val':True}
 
 if __name__=="__main__":
