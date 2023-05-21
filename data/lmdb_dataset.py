@@ -48,12 +48,25 @@ class ConcatLmdbDataset(Dataset):
             sys.exit(0)
         else:
             print('Totally %d fonts for single character generation.' % len(self.font_path))
-        
+        # 这里临时加一块硬代码，把image部分加到里面
+        batchsize_list.append(16)
+        ds=imageDataset(style_database_root=dataset_list[0],
+                image_content_path="tmp/hanimages/word2imgtop10",
+                alphabet=alphabet,
+                transform_img=transform_img,
+                transform_target_img=transform_target_img,
+                radical_dict=radical_dict
+        )
+        # hard code
         self.datasets = []
         self.prob = [batchsize / sum(batchsize_list) for batchsize in batchsize_list]
         for i in range(len(dataset_list)):
             print('For every iter: %s samples from %s' % (batchsize_list[i], dataset_list[i]))
             self.datasets.append(lmdbDataset(dataset_list[i], self.font_path, self.corpus, transform_img,transform_target_img, alphabet,radical_dict))
+        # hard代码
+        self.datasets.append(ds)
+        
+        #
         self.datasets_range = range(len(self.datasets))
 
     def __len__(self):
@@ -311,31 +324,31 @@ def test_image_dataset():
     for line in total:
         char,radical = line.split(':')[0],line.split(':')[1]
         radical_dict[char] = radical
-    ds=imageDataset(style_database_root="/home/liukun/gan/cg-gan-custom/data/train_set",
+    ds=imageDataset(style_database_root="data/train_set",
                 image_content_path="tmp/hanimages/word2imgtop10",
                 alphabet=alphabet,
                 transform_img=resizeKeepRatio((128,128)),
                 transform_target_img=resizeKeepRatio((128,128)),
                 radical_dict=radical_dict
-        )
+    )
     print(len(ds))
     print(ds[1])
 if __name__ =='__main__':
     test_image_dataset()
     dataset = ConcatLmdbDataset(
-        dataset_list = ['data/FFG_lmdb_dataset_423fonts/test_399fonts_oov_seenstyles_addradical'],
-        batchsize_list = [1],
+        dataset_list = ['data/train_set'],
+        batchsize_list = [16],
         ttfRoot = 'data/font',
-        corpusRoot = "data/char_seen_set.txt",
+        corpusRoot = "data/char_set.txt",
         transform_img= resizeKeepRatio((128,128)),
         transform_target_img=resizeKeepRatio((128,128)),
-        alphabet = "data/char_seen_set.txt",      
+        alphabet = "data/alphabet.txt",      
     )
     train_loader = torch.utils.data.DataLoader(
-        dataset,batch_size =1,sampler =None,drop_last=True,num_workers = 0,shuffle=False
+        dataset,batch_size =32,sampler =None,drop_last=True,num_workers = 0,shuffle=False
     )
     dataset_size = len(dataset)    # get the number of images in the dataset.
     print('The number of training images = %d' % dataset_size)
     for i, data in enumerate(train_loader):
-        import pdb;pdb.set_trace()
+        #import pdb;pdb.set_trace()
         print(data)
