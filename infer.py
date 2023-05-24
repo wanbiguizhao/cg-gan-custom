@@ -37,6 +37,7 @@ if __name__ == '__main__':
     os.makedirs(save_dir)
     if opt.eval:
         model.eval()
+    model.eval()
     for index in tqdm(range(len(infer_dataset))):     
         data=infer_dataset[index] 
         content_label=data['B_label']

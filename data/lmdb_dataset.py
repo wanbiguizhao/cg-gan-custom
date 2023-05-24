@@ -50,8 +50,9 @@ class ConcatLmdbDataset(Dataset):
             print('Totally %d fonts for single character generation.' % len(self.font_path))
         # 这里临时加一块硬代码，把image部分加到里面
         batchsize_list.append(16)
-        ds=imageDataset(style_database_root=dataset_list[0],
+        ds=fontAndImageDataset(style_database_root=dataset_list[0],
                 image_content_path="tmp/hanimages/word2imgtop10",
+                font_path=self.font_path,
                 alphabet=alphabet,
                 transform_img=transform_img,
                 transform_target_img=transform_target_img,
@@ -78,6 +79,98 @@ class ConcatLmdbDataset(Dataset):
         idx_sample = index % self.datasets[idx_dataset].__len__()
         #import pdb;pdb.set_trace()
         return self.datasets[idx_dataset][idx_sample]
+
+class fontAndImageDataset(Dataset):
+    # 直接从字体和文件夹中提供数据
+    def __init__(self,style_database_root=None, image_content_path=None,font_path=None, corpus=None,
+        transform_img=None,transform_target_img=None, alphabet=string.printable[:-6], radical_dict = None):
+        assert transform_img != None
+        self.env = lmdb.open(
+            style_database_root,
+            max_readers=1,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False)
+        if not self.env:
+            print('cannot open lmdb from %s' % (style_database_root))
+            sys.exit(0)
+
+        with self.env.begin(write=False) as txn:
+            nSamples = int(txn.get('num-samples'.encode()))
+            self.nSamples = nSamples
+        
+        self.root = style_database_root
+        self.transform_img = transform_img
+        self.transform_target_img = transform_target_img
+        self.image_content_nSamples = get_content_image_data(base_dir=image_content_path)
+        self.corpus = corpus# 语料表
+        self.alphabet = alphabet#字母表
+        self.radical_dict = radical_dict# 偏旁部首字典
+
+        # samples = get_content_image_data(base_dir=content_image_dir)
+        # #import pdb;pdb.set_trace()
+        # self.samples = samples
+        # self.ids = [s[1] for s in samples]
+        # self.target_transform = target_transform
+        # self.loader = pil_loader
+        # self.font_path = []
+        # self.style_corpus = corpus# 语料表
+        # if os.path.isfile(style_ttfRoot):
+        #     self.font_path.append(style_ttfRoot)
+        # else:
+        #     ttf_dir = os.walk(style_ttfRoot)
+        #     for path, d, filelist in ttf_dir:
+        #         for filename in filelist:
+        #             if filename.endswith('.ttf') or filename.endswith('.ttc') or filename.endswith('.otf'):
+        #                 self.font_path.append(path+'/'+filename)
+    
+    def __len__(self):
+        return self.nSamples
+    
+
+    def clear_lexicon(self,origin_lexicon):
+        lexicon=origin_lexicon
+        space_list = ['⿰','⿱','⿳','⿺','⿶','⿹','⿸','⿵','⿲','⿴','⿷','⿻']
+        lexicon_list_old = lexicon.split()
+        lexicon_list = []
+        for i in lexicon_list_old:
+            if i not in space_list:
+                lexicon_list.append(i)
+        lexicon = ' '.join(lexicon_list)# 这块就是所有去掉特殊字符之后⿰，都是偏旁部首。
+        return lexicon
+    def __getitem__(self, index):
+        assert index <= len(self), 'index range error'
+        index += 1
+        # 这个是汉字图片
+        content_label,rel_path,img_content = self.image_content_nSamples[index%len(self.image_content_nSamples)]# 扫描到一个汉字。
+        lexicon_content = self.radical_dict[content_label]
+        lexicon_content=self.clear_lexicon(lexicon_content)
+        # 有50%的可能是，两者是一模一样的汉字，
+        # 剩下的随机从一语料库中选一个汉字。
+        if random.random()>=0.5:
+            label_style = self.corpus[random.randint(0, len(self.corpus)-1)]
+        else:
+            label_style = content_label
+
+        styleID=random.randint(0,len(self.font_path)-1)
+        font = ImageFont.truetype(self.font_path[styleID], 64)
+        lexicon_style = self.radical_dict[label_style]
+        lexicon_style=self.clear_lexicon(lexicon_style)
+
+        label_w, label_h = font.getsize(label_style)
+        img_target = Image.new('RGB', (label_w, label_h), (255, 255, 255))
+        drawBrush = ImageDraw.Draw(img_target)
+        drawBrush.text((0, 0), content_label, fill=(0, 0, 0), font=font)
+
+
+        img_content = self.transform_target_img(img_content)
+        img_style = self.transform_img(img_style)
+
+        return {'A': img_style, 'B': img_content, 'A_paths': (index-1) % len(self.image_content_nSamples), "B_paths":rel_path,'writerID': styleID,
+        'A_label': label_style, 'B_label': content_label,'root':self.root,'A_lexicon':lexicon_style,'B_lexicon':lexicon_content}
+
+            
 
 class lmdbDataset(Dataset):
 
