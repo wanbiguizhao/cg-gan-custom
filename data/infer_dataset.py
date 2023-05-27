@@ -61,6 +61,46 @@ class InferDataset(Dataset):
         return {'A': img_style, 'B': img_content, 'A_paths': index, 'writerID': styleID,"content_rel_path":rel_path,
             'A_label': style_label, 'B_label': content_target, 'val':True}
 
+class HackInferDataset(Dataset):
+    def __init__(self,content_image_dir,style_ttfRoot,target_transform = resizeKeepRatio((128, 128)),corpus=None, ):
+        #import pdb;pdb.set_trace()
+        samples = get_content_image_data(image_file_path="image_low_score_info.txt")
+        #import pdb;pdb.set_trace()
+        self.samples = samples
+        self.ids = [s[1] for s in samples]
+        self.target_transform = target_transform
+        self.loader = pil_loader
+        self.font_path = []
+        self.style_corpus = corpus# 语料表
+        if os.path.isfile(style_ttfRoot):
+            self.font_path.append(style_ttfRoot)
+        else:
+            ttf_dir = os.walk(style_ttfRoot)
+            for path, d, filelist in ttf_dir:
+                for filename in filelist:
+                    if filename.endswith('.ttf') or filename.endswith('.ttc') or filename.endswith('.otf'):
+                        self.font_path.append(path+'/'+filename)
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, index):
+        label,rel_path,img_content,image_uuid = self.samples[index]
+        img_content=self.target_transform(img_content)# 这个是可以提前做，避免训练的时候做
+        # img_style = self.loader(f"tmp/images/{path}")
+        # if self.target_transform is not None:
+        #     img_style = self.target_transform(img_style)
+        content_target = label 
+        
+        # 從字體中画一个图片作为样式参考
+        font_path = self.font_path[random.randint(0,len(self.font_path)-1)]
+        style_label=label
+        img_style = draw(font_path,style_label)
+        img_style = self.target_transform(img_style)
+        styleID = 0             
+        return {'A': img_style, 'B': img_content, 'A_paths': index, 'writerID': styleID,"content_rel_path":rel_path,
+            'A_label': style_label, 'B_label': content_target, 'val':True,"image_uuid":image_uuid}
+
 if __name__=="__main__":
     val=InferDataset()
     pass

@@ -27,11 +27,18 @@ def get_content_image_data(image_file_path=None,base_dir=None):
                 result.append([han,image_path[len(base_dir)+1:],pil_loader(image_path)])
             #print(result[-1])
         return result
+    # image_file_path 
+    # 的文件格式，第一个列是汉字的名称，二列，三列，四列是图片的路径。
     assert os.path.exists(image_file_path)
     assert os.path.isfile(image_file_path)
-    image_list=[]
-    image_file_info=open(image_file_path,"r").read().splitlines()
-    
+    with open(image_file_path,"r")as image_file:
+        image_data_list=image_file.read().splitlines()
+    for image_data in image_data_list:
+        image_data=image_data.split("\t")
+        if len(image_data)<4:
+            continue
+        result.append([image_data[0],image_data[3],pil_loader(image_data[3]),image_data[4]])
+    return result
     
 
 
@@ -40,3 +47,6 @@ def pil_loader(path):
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
+
+if __name__=="__main__":
+   get_content_image_data("image_low_score_info.txt")
