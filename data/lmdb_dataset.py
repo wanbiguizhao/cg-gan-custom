@@ -159,9 +159,9 @@ class fontAndImageDataset(Dataset):
         lexicon_style=self.clear_lexicon(lexicon_style)
 
         label_w, label_h = font.getsize(label_style)
-        img_target = Image.new('RGB', (label_w, label_h), (255, 255, 255))
-        drawBrush = ImageDraw.Draw(img_target)
-        drawBrush.text((0, 0), content_label, fill=(0, 0, 0), font=font)
+        img_style = Image.new('RGB', (label_w, label_h), (255, 255, 255))
+        drawBrush = ImageDraw.Draw(img_style)
+        drawBrush.text((0, 0), label_style, fill=(0, 0, 0), font=font)
 
 
         img_content = self.transform_target_img(img_content)
@@ -171,6 +171,100 @@ class fontAndImageDataset(Dataset):
         'A_label': label_style, 'B_label': content_label,'root':self.root,'A_lexicon':lexicon_style,'B_lexicon':lexicon_content}
 
             
+class font2ImageDataset(Dataset):
+    # 可以图片作为style也可以字体作为style。
+    # 主要的目的是学习一个编码器。
+    def __init__(self,style_database_root=None, image_content_path=None,font_path=None, corpus=None,
+        transform_img=None,transform_target_img=None, alphabet=string.printable[:-6], radical_dict = None):
+        assert transform_img != None
+        self.env = lmdb.open(
+            style_database_root,
+            max_readers=1,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False)
+        if not self.env:
+            print('cannot open lmdb from %s' % (style_database_root))
+            sys.exit(0)
+
+        with self.env.begin(write=False) as txn:
+            nSamples = int(txn.get('num-samples'.encode()))
+            self.nSamples = nSamples
+        self.font_path=font_path
+        self.root = style_database_root
+        self.transform_img = transform_img
+        self.transform_target_img = transform_target_img
+        self.image_content_nSamples = get_content_image_data(base_dir=image_content_path)
+        self.corpus = corpus# 语料表
+        self.alphabet = alphabet#字母表
+        self.radical_dict = radical_dict# 偏旁部首字典
+
+    def __len__(self):
+        return len(self.image_content_nSamples)
+    
+
+    def clear_lexicon(self,origin_lexicon):
+        lexicon=origin_lexicon
+        space_list = ['⿰','⿱','⿳','⿺','⿶','⿹','⿸','⿵','⿲','⿴','⿷','⿻']
+        lexicon_list_old = lexicon.split()
+        lexicon_list = []
+        for i in lexicon_list_old:
+            if i not in space_list:
+                lexicon_list.append(i)
+        lexicon = ' '.join(lexicon_list)# 这块就是所有去掉特殊字符之后⿰，都是偏旁部首。
+        return lexicon
+    def __getitem__(self, index):
+        assert index <= len(self), 'index range error'
+        index += 1
+        # 这个是汉字图片
+        if random.random()<1.0/(len(self.font_path)+1):# 1/(算上所有的字体+1)的概率图片作为content。
+            content_label,rel_path,img_content = self.image_content_nSamples[index%len(self.image_content_nSamples)]# 扫描到一个汉字。
+            lexicon_content = self.radical_dict[content_label]
+            lexicon_content=self.clear_lexicon(lexicon_content)
+            # 有50%的可能是，两者是一模一样的汉字，
+            # 剩下的随机从一语料库中选一个汉字。
+            if random.random()>=0.5:
+                label_style = self.corpus[random.randint(0, len(self.corpus)-1)]
+            else:
+                label_style = content_label
+
+            styleID=random.randint(0,len(self.font_path)-1)
+            font = ImageFont.truetype(self.font_path[styleID], 64)
+            lexicon_style = self.radical_dict[label_style]
+            lexicon_style=self.clear_lexicon(lexicon_style)
+
+            label_w, label_h = font.getsize(label_style)
+            img_style = Image.new('RGB', (label_w, label_h), (255, 255, 255))
+            drawBrush = ImageDraw.Draw(img_style)
+            drawBrush.text((0, 0), label_style, fill=(0, 0, 0), font=font)
+
+        else: # 字体画出的画作为content。
+            label_style,rel_path,img_style=self.image_content_nSamples[index]
+            styleID=len(self.font_path)# 字体上再加1个。
+            lexicon_style = self.radical_dict[label_style]
+            lexicon_style=self.clear_lexicon(lexicon_style)
+
+            if random.random()<0.75:
+                content_label = self.corpus[random.randint(0, len(self.corpus)-1)]
+            else:
+                content_label=label_style
+            
+            font_id=random.randint(0,len(self.font_path)-1)
+            font = ImageFont.truetype(self.font_path[font_id], 64)
+            lexicon_content = self.radical_dict[content_label]
+            lexicon_content=self.clear_lexicon(lexicon_content)
+
+            label_w, label_h = font.getsize(content_label)
+            img_content = Image.new('RGB', (label_w, label_h), (255, 255, 255))
+            drawBrush = ImageDraw.Draw(img_content)
+            drawBrush.text((0, 0), content_label, fill=(0, 0, 0), font=font)
+
+        img_content = self.transform_target_img(img_content)
+        img_style = self.transform_img(img_style)
+
+        return {'A': img_style, 'B': img_content, 'A_paths': (index-1) % len(self.image_content_nSamples), "B_paths":rel_path,'writerID': styleID,
+        'A_label': label_style, 'B_label': content_label,'root':self.root,'A_lexicon':lexicon_style,'B_lexicon':lexicon_content}
 
 class lmdbDataset(Dataset):
 

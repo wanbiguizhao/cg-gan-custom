@@ -126,7 +126,7 @@ class CHARACTERModel(BaseModel):
         # img_write 是style  A
         # img_print 是 content
         self.style_emd,self.style_fc,self.residual_features_style = self.netStyleEncoder(self.img_write)# self.style_emd,self.style_fc 的关系style_fc在style_emd的基础上做了自适应平均，变成了1，1的矩阵。
-        self.cont,self.residual_features = self.netContentEncoder(self.img_print)# self.cont [bs,ch=1024,h=4,w=4]
+        self.cont,self.residual_features = self.netContentEncoder(self.img_print)# img_print is content image self.cont [bs,ch=1024,h=4,w=4]
         # self.residual_features [torch.Size([4, 3, 128, 128]), torch.Size([4, 64, 64, 64]), torch.Size([4, 128, 32, 32]), torch.Size([4, 256, 16, 16]), torch.Size([4, 512, 8, 8])]
         self.img_print2write = self.netdecoder(self.cont,self.residual_features,self.style_emd,self.style_fc,self.residual_features_style)
         # 生成器基本上是和图片有关系，这点非常重要。
@@ -183,7 +183,7 @@ class CHARACTERModel(BaseModel):
         self.cont_g, _ = self.netContentEncoder(self.img_print2write)
         self.loss_G_cont_idt = self.criterionIdt(self.cont, self.cont_g) * lambda_content # 计算对于内容编码的损失。cont 来源于B。
         #loss_idt
-        self.cont_w,self.residual_features_w = self.netContentEncoder(self.img_write)
+        self.cont_w,self.residual_features_w = self.netContentEncoder(self.img_write)# 对style image的内容进行编码，
         img_idt = self.netdecoder(self.cont_w,self.residual_features_w,self.style_emd,self.style_fc,self.residual_features_style)
         self.loss_G_idt = self.criterionIdt(img_idt, self.img_write)# 使用自己的图片，重新生成的图片，应该尽量奶盖保证一致，模型的稳定性
         
