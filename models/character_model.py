@@ -130,7 +130,14 @@ class CHARACTERModel(BaseModel):
         # self.residual_features [torch.Size([4, 3, 128, 128]), torch.Size([4, 64, 64, 64]), torch.Size([4, 128, 32, 32]), torch.Size([4, 256, 16, 16]), torch.Size([4, 512, 8, 8])]
         self.img_print2write = self.netdecoder(self.cont,self.residual_features,self.style_emd,self.style_fc,self.residual_features_style)
         # 生成器基本上是和图片有关系，这点非常重要。
+    
+    def output_cont_encode(self):
         
+        with torch.no_grad():
+            self.cont,self.residual_features = self.netContentEncoder(self.img_print)#
+            return self.cont.reshape(-1)
+
+
         
     def backward_D_basic(self, netD, real, fake):
 
