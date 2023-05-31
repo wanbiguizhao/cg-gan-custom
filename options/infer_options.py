@@ -21,6 +21,7 @@ class InferOptions(BaseOptions):
         parser.add_argument('--cont_refRoot', type=str, default='images/img_cont_reference.png', help='which content reference to test')
         parser.add_argument('--save_dir', type=str, default='images_iam', help='path to save reference img')
         parser.add_argument('--label', type=str,  help='which content to render')
+        parser.add_argument('--debug', action='store_true', help='use debug')
         # rewrite devalue values
         parser.set_defaults(model='test')
         # To avoid cropping, the load_size should be the same as crop_size
