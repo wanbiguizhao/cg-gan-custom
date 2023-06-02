@@ -16,7 +16,7 @@ def draw(font_path,label,save_dir):
     label_w, label_h = font.getsize(label)
     img_target = Image.new('RGB', (label_w+10,label_h+10),(255,255,255))
     drawBrush = ImageDraw.Draw(img_target)
-    drawBrush.text((0,0),label,fill=(0,0,0),font = font,align="center")
+    drawBrush.text((0,0),label,fill=(0,0,0),font = font)
     img_target.save(os.path.join(save_dir,'%s_img_cont_reference.png' %label))
     return img_target
 
@@ -27,7 +27,7 @@ def save_single_image(save_dir,image_data,origin_image_uuid,content,label,aspect
     save_path=f"{save_dir}/{origin_image_uuid}"
     os.makedirs(save_path,exist_ok=True)
     save_path = os.path.join(save_path, f'{content}_{label}.png' )
-    #print(save_path)
+    print(save_path)
     util.save_image(im, save_path, aspect_ratio=aspect_ratio)
 
 def inferFontImage2target(opt):
@@ -56,8 +56,11 @@ def inferFontImage2target(opt):
             save_file_name=f"{content_label}_{origin_png}"
             #save_path=data["save_path"]
             #image_uuid=data["image_uuid"]
-            if not is_contains_chinese(content_label):
+            if len(content_label)==0:
                 continue
+            print(content_label)
+            # if not is_contains_chinese(content_label):
+            #     continue
             data = {'A': data['A'].unsqueeze(0), 'B': data['B'].unsqueeze(0)}
             
             model.set_single_input(data)
@@ -65,8 +68,8 @@ def inferFontImage2target(opt):
             #continue
             #visuals =model.get_current_visuals()
             #save_single_image(save_dir, save_file_name,visuals,aspect_ratio=opt.aspect_ratio,width=opt.display_winsize)
-            save_single_image(save_dir, model.img_print,content_label,f"{font_id}-{content_label}#","img_print",aspect_ratio=opt.aspect_ratio)
-            save_single_image(save_dir, model.img_print2write,content_label,f"{font_id}-{content_label}#","img_print2write",aspect_ratio=opt.aspect_ratio)
+            save_single_image(save_dir, model.img_print,f"fuhao",f"{index}-{font_id}-#","img_print",aspect_ratio=opt.aspect_ratio)
+            save_single_image(save_dir, model.img_print2write,f"fuhao",f"{index}-{font_id}-#","img_print2write",aspect_ratio=opt.aspect_ratio)
             #print(font_id)
         if index%1000==0:
             
